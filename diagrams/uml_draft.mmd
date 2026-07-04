@@ -1,0 +1,75 @@
+classDiagram
+    class Owner {
+        +string name
+        +string preferences
+        +int available_time_minutes
+        +string notes
+        +update_preferences(preferences)
+        +set_available_time(minutes)
+        +add_pet(pet)
+    }
+
+    class Pet {
+        +string name
+        +string species
+        +string breed
+        +int age
+        +string care_notes
+        +update_profile(name, species, breed, age)
+        +add_need(need)
+        +get_summary()
+    }
+
+    class Task {
+        +string title
+        +int duration_minutes
+        +string priority
+        +string category
+        +string recurrence
+        +string preferred_time
+        +bool completed
+        +is_valid()
+        +get_priority_score()
+        +mark_complete()
+        +can_fit_into(time_remaining)
+    }
+
+    class DayPlan {
+        +date date
+        +int available_minutes
+        +list tasks
+        +list scheduled_items
+        +add_task(task)
+        +build_plan()
+        +sort_tasks()
+        +filter_tasks()
+        +explain_plan()
+    }
+
+    class ScheduleItem {
+        +Task task
+        +string start_time
+        +string end_time
+        +string reason
+        +format_entry()
+        +conflicts_with(other)
+    }
+
+    class Scheduler {
+        +Owner owner
+        +Pet pet
+        +list tasks
+        +dict constraints
+        +generate_schedule()
+        +rank_tasks()
+        +check_constraints()
+        +resolve_conflicts()
+    }
+
+    Owner --> Pet : cares for
+    Owner --> Scheduler : uses
+    Pet --> Task : needs
+    Scheduler --> Task : evaluates
+    Scheduler --> DayPlan : creates
+    DayPlan --> ScheduleItem : contains
+    ScheduleItem --> Task : wraps

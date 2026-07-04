@@ -5,7 +5,15 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+1. Add or update a pet profile.
+2. Add or edit care tasks such as feeding, walking, medication, or grooming.
+3. Generate and review today’s schedule based on time, priority, and owner preferences.
 - What classes did you include, and what responsibilities did you assign to each?
+1. Owner stores who is using the app and what preferences or time limits they have.
+2. Pet stores the animal’s identity and care details.
+3. Task stores one care action, like a walk, feeding, or medication.
+4. Scheduler decides which tasks to include and in what order.
+5. DayPlan holds the final result that the Streamlit UI displays.
 
 **b. Design changes**
 
