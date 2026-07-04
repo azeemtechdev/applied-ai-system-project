@@ -4,21 +4,16 @@
 
 **a. Initial design**
 
-- Briefly describe your initial UML design.
-1. Add or update a pet profile.
-2. Add or edit care tasks such as feeding, walking, medication, or grooming.
-3. Generate and review today’s schedule based on time, priority, and owner preferences.
-- What classes did you include, and what responsibilities did you assign to each?
-1. Owner stores who is using the app and what preferences or time limits they have.
-2. Pet stores the animal’s identity and care details.
-3. Task stores one care action, like a walk, feeding, or medication.
-4. Scheduler decides which tasks to include and in what order.
-5. DayPlan holds the final result that the Streamlit UI displays.
+My initial UML design centered on a small set of classes that matched the main user actions in PawPal+. I included an `Owner` class to store the pet owner's basic info, preferences, and available time, a `Pet` class to store the animal's profile and care notes, and a `Task` class to represent individual care actions such as feeding, walking, or medication. I also added a `Scheduler` class to make scheduling decisions, a `DayPlan` class to hold the final daily plan, and a `ScheduleItem` class to represent each planned task with its time and reasoning.
+
+Each class had a clear responsibility. `Owner` managed owner preferences and availability, `Pet` stored pet-specific details, and `Task` held the data needed to rank and filter care tasks. `Scheduler` was responsible for generating the plan based on constraints and priorities, `DayPlan` organized the selected tasks into a daily schedule, and `ScheduleItem` kept each scheduled task readable for the UI and explanation output.
+
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+Yes, my design changed during implementation. My first version used a simple, flexible structure with tasks, string-based time fields, and a generic constraints dictionary. After I started building the skeleton, I realized that would make conflict checking and scheduling harder to manage, so I refactored the model.
+
+One major change was adding a `TimeWindow` class so preferred times and scheduled times could be handled in a structured way instead of plain text. I also replaced the loose constraints dictionary with a `SchedulingConstraints` class, and I linked `Task` objects to a specific `Pet` so the scheduler can support pet-specific care more clearly. These changes made the design more precise and easier to extend when I start implementing the actual scheduling logic.
 
 ---
 

@@ -1,4 +1,19 @@
 classDiagram
+    class TimeWindow {
+        +int start_minute
+        +int end_minute
+        +duration_minutes()
+        +contains(minute)
+        +overlaps(other)
+    }
+
+    class SchedulingConstraints {
+        +int available_minutes
+        +list preferred_windows
+        +list blocked_windows
+        +int max_tasks
+    }
+
     class Owner {
         +string name
         +string preferences
@@ -15,8 +30,10 @@ classDiagram
         +string breed
         +int age
         +string care_notes
+        +Owner owner
+        +list tasks
         +update_profile(name, species, breed, age)
-        +add_need(need)
+        +add_task(task)
         +get_summary()
     }
 
@@ -26,7 +43,8 @@ classDiagram
         +string priority
         +string category
         +string recurrence
-        +string preferred_time
+        +TimeWindow preferred_window
+        +Pet pet
         +bool completed
         +is_valid()
         +get_priority_score()
@@ -37,19 +55,18 @@ classDiagram
     class DayPlan {
         +date date
         +int available_minutes
-        +list tasks
+        +Owner owner
+        +Pet pet
         +list scheduled_items
-        +add_task(task)
-        +build_plan()
-        +sort_tasks()
-        +filter_tasks()
+        +add_item(item)
+        +get_total_scheduled_minutes()
+        +get_remaining_minutes()
         +explain_plan()
     }
 
     class ScheduleItem {
         +Task task
-        +string start_time
-        +string end_time
+        +TimeWindow window
         +string reason
         +format_entry()
         +conflicts_with(other)
@@ -59,17 +76,20 @@ classDiagram
         +Owner owner
         +Pet pet
         +list tasks
-        +dict constraints
+        +SchedulingConstraints constraints
         +generate_schedule()
         +rank_tasks()
         +check_constraints()
         +resolve_conflicts()
     }
 
+    Owner --> SchedulingConstraints : uses
     Owner --> Pet : cares for
     Owner --> Scheduler : uses
-    Pet --> Task : needs
+    Pet --> Task : owns tasks
+    Task --> TimeWindow : prefers
     Scheduler --> Task : evaluates
     Scheduler --> DayPlan : creates
     DayPlan --> ScheduleItem : contains
     ScheduleItem --> Task : wraps
+    ScheduleItem --> TimeWindow : schedules within
