@@ -26,8 +26,7 @@ One major change was adding a `TimeWindow` class so preferred times and schedule
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+My scheduler uses a lightweight conflict check that warns on overlapping or identical start times instead of solving a full optimization problem. That tradeoff keeps the logic easy to explain and fast to run in a small demo app, but it means the scheduler can miss more subtle scheduling improvements that a more advanced constraint solver would catch.
 
 ---
 

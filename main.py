@@ -119,6 +119,105 @@ def main():
         max_tasks=10,
     )
 
+    # Demo tasks for sorting, filtering, recurring automation, and conflict checks
+    demo_tasks = [
+        Task(
+            title="Evening check-in",
+            duration_minutes=15,
+            priority="low",
+            category="care",
+            recurrence="daily",
+            time="18:30",
+            due_date=date.today(),
+            pet=dog,
+        ),
+        Task(
+            title="Lunch playtime",
+            duration_minutes=20,
+            priority="medium",
+            category="enrichment",
+            recurrence="weekly",
+            time="12:00",
+            due_date=date.today(),
+            pet=cat,
+        ),
+        Task(
+            title="Breakfast feeding",
+            duration_minutes=10,
+            priority="high",
+            category="nutrition",
+            recurrence="daily",
+            time="07:15",
+            due_date=date.today(),
+            pet=dog,
+        ),
+        Task(
+            title="Morning meds",
+            duration_minutes=5,
+            priority="high",
+            category="health",
+            recurrence="daily",
+            time="08:00",
+            due_date=date.today(),
+            pet=cat,
+        ),
+        Task(
+            title="Morning walk",
+            duration_minutes=30,
+            priority="high",
+            category="exercise",
+            recurrence="daily",
+            time="08:00",
+            due_date=date.today(),
+            pet=dog,
+        ),
+    ]
+
+    demo_scheduler = Scheduler(owner=owner, pet=None, tasks=demo_tasks, constraints=constraints)
+
+    print("=" * 60)
+    print("Sorting, Filtering, Recurrence, and Conflict Demo")
+    print("=" * 60)
+    print()
+
+    print("Tasks added out of time order:")
+    for task in demo_tasks:
+        print(f"  - {task.pet.name}: {task.title} at {task.time}")
+    print()
+
+    print("Tasks sorted by time:")
+    for task in demo_scheduler.sort_by_time():
+        print(f"  - {task.time} | {task.pet.name}: {task.title} [{task.priority}]")
+    print()
+
+    print("Pending tasks for Biscuit:")
+    for task in demo_scheduler.filter_tasks(pet_name="Biscuit", completed=False):
+        print(f"  - {task.time} | {task.title}")
+    print()
+
+    completed_demo_task = demo_tasks[2]
+    next_occurrence = demo_scheduler.mark_task_complete(completed_demo_task)
+    print(f"Marked complete: {completed_demo_task.title} -> completed={completed_demo_task.completed}")
+    if next_occurrence:
+        print(
+            f"Recurring task recreated for {next_occurrence.pet.name}: {next_occurrence.title} due {next_occurrence.due_date}"
+        )
+    print()
+
+    print("Completed tasks for Biscuit:")
+    for task in demo_scheduler.filter_tasks(pet_name="Biscuit", completed=True):
+        print(f"  - {task.time} | {task.title}")
+    print()
+
+    conflict_warnings = demo_scheduler.detect_conflicts()
+    print("Conflict warnings:")
+    if conflict_warnings:
+        for warning in conflict_warnings:
+            print(f"  WARNING: {warning}")
+    else:
+        print("  None")
+    print()
+
     # Schedule for Biscuit
     print("=" * 60)
     print(f"Generating schedule for {dog.name}...")

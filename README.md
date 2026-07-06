@@ -72,14 +72,14 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
+PawPal+ now includes a small set of scheduling helpers that make the demo more useful for real pet-care planning.
 
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Sorting behavior | `Scheduler.sort_by_time()` | Sorts tasks by their `HH:MM` time string, then by priority score and duration so earlier care tasks appear first. |
+| Filtering behavior | `Scheduler.filter_tasks()` | Filters tasks by pet name and/or completion status, which is useful for pet-specific views and status-based lists. |
+| Conflict detection logic | `Scheduler.detect_conflicts()` | Compares task times for the same day and returns warning messages when two tasks overlap instead of crashing or failing silently. |
+| Recurring task logic | `Scheduler.mark_task_complete()` and `Task.get_next_occurrence()` | When a daily or weekly task is completed, the next occurrence is cloned automatically using `timedelta` so the recurring care task stays in the schedule. |
 
 ## 📸 Demo Walkthrough
 

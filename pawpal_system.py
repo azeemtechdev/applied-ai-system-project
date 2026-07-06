@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from datetime import date
+from dataclasses import dataclass, field, replace
+from datetime import date, timedelta
 from typing import List
 
 
@@ -91,6 +91,8 @@ class Task:
 	priority: str = ""
 	category: str = ""
 	recurrence: str = ""
+	time: str = ""
+	due_date: date | None = None
 	preferred_window: TimeWindow | None = None
 	pet: "Pet" | None = None
 	completed: bool = False
@@ -107,6 +109,15 @@ class Task:
 	def mark_complete(self) -> None:
 		"""Mark the task as completed."""
 		self.completed = True
+
+	def get_next_occurrence(self) -> "Task" | None:
+		"""Create the next recurring instance for daily or weekly tasks."""
+		if self.recurrence not in {"daily", "weekly"}:
+			return None
+
+		days_ahead = 1 if self.recurrence == "daily" else 7
+		next_due_date = (self.due_date or date.today()) + timedelta(days=days_ahead)
+		return replace(self, completed=False, due_date=next_due_date)
 
 	def can_fit_into(self, time_remaining: int) -> bool:
 		"""Check if task duration fits within remaining available time."""
@@ -178,6 +189,99 @@ class Scheduler:
 	pet: Pet | None = None
 	tasks: List[Task] = field(default_factory=list)
 	constraints: SchedulingConstraints | None = None
+
+	def _time_to_minutes(self, time_value: str) -> int:
+		"""Convert an HH:MM string into minutes since midnight."""
+		if not time_value:
+			return 24 * 60
+		hours, minutes = (int(part) for part in time_value.split(":"))
+		return hours * 60 + minutes
+
+	def sort_by_time(self, tasks: List[Task] | None = None) -> List[Task]:
+		"""Sort tasks by their HH:MM time string.
+
+		Tasks without a time are placed last, and ties are broken by
+		priority score and then by shorter duration.
+		"""
+		tasks_to_sort = tasks if tasks is not None else self.tasks
+		return sorted(
+			tasks_to_sort,
+			key=lambda task: (
+				self._time_to_minutes(task.time),
+				-task.get_priority_score(),
+				task.duration_minutes,
+			),
+		)
+
+	def filter_tasks(
+		self,
+		pet_name: str | None = None,
+		completed: bool | None = None,
+		tasks: List[Task] | None = None,
+	) -> List[Task]:
+		"""Return tasks that match the requested pet name and completion status.
+
+		This helper supports simple UI filtering and terminal demos without
+		requiring callers to duplicate selection logic.
+		"""
+		tasks_to_filter = tasks if tasks is not None else self.tasks
+		filtered_tasks: List[Task] = []
+		for task in tasks_to_filter:
+			if pet_name and (not task.pet or task.pet.name != pet_name):
+				continue
+			if completed is not None and task.completed != completed:
+				continue
+			filtered_tasks.append(task)
+		return filtered_tasks
+
+	def mark_task_complete(self, task: Task) -> Task | None:
+		"""Mark a task complete and clone the next recurring instance when needed.
+
+		Daily tasks roll forward by one day and weekly tasks roll forward by
+		seven days. Non-recurring tasks return None.
+		"""
+		task.mark_complete()
+		next_task = task.get_next_occurrence()
+		if next_task and task.pet:
+			task.pet.add_task(next_task)
+			if next_task not in self.tasks:
+				self.tasks.append(next_task)
+		return next_task
+
+	def detect_conflicts(self, tasks: List[Task] | None = None) -> List[str]:
+		"""Detect overlapping task times and return human-readable warnings.
+
+		The check is intentionally lightweight: it flags tasks that overlap on
+		the same day instead of attempting full rescheduling or optimization.
+		"""
+		tasks_to_check = [task for task in (tasks if tasks is not None else self.tasks) if task.time]
+		warnings: List[str] = []
+
+		for index, left_task in enumerate(tasks_to_check):
+			left_start = self._time_to_minutes(left_task.time)
+			left_end = left_start + left_task.duration_minutes
+
+			for right_task in tasks_to_check[index + 1 :]:
+				if left_task.due_date and right_task.due_date and left_task.due_date != right_task.due_date:
+					continue
+
+				right_start = self._time_to_minutes(right_task.time)
+				right_end = right_start + right_task.duration_minutes
+
+				if left_end <= right_start or right_end <= left_start:
+					continue
+
+				pet_scope = "the same pet"
+				if left_task.pet and right_task.pet and left_task.pet != right_task.pet:
+					pet_scope = f"different pets ({left_task.pet.name} and {right_task.pet.name})"
+				elif left_task.pet and right_task.pet:
+					pet_scope = f"{left_task.pet.name}"
+
+				warnings.append(
+					f"Conflict: '{left_task.title}' at {left_task.time} and '{right_task.title}' at {right_task.time} overlap for {pet_scope}."
+				)
+
+		return warnings
 
 	def rank_tasks(self) -> List[Task]:
 		"""Sort tasks by priority (highest first), then by duration (shortest first)."""
