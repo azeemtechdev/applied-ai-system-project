@@ -57,18 +57,34 @@ Paste a sample of your app's CLI or Streamlit output here so a reader can see wh
 ## 🧪 Testing PawPal+
 
 ```bash
-# Run the full test suite:
-pytest
+# Run the full test suite (recommended):
+python -m pytest -q
 
 # Run with coverage:
-pytest --cov
+python -m pytest --cov -q
 ```
 
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================================= test session starts =============================================
+platform win32 -- Python 3.14.5, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\ibrahim azeem\Desktop\pawpal-starter
+collected 3 items                                                                                              
+
+tests\test_pawpal.py ...                                                                                 [100%]
+
+============================================== 3 passed in 0.08s ==============================================
 ```
+
+What the tests cover:
+
+- Sorting correctness: tasks are ordered chronologically by `Scheduler.sort_by_time()`.
+- Recurrence logic: completing a daily task creates the next-day occurrence via `mark_task_complete()`.
+- Conflict detection: overlapping/duplicate times are flagged by `Scheduler.detect_conflicts()`.
+- Core unit checks: basic `Task` validation and `Pet` task management.
+
+Confidence Level: ★★★★☆ (4/5) — Tests passed locally and verify the scheduler's core behaviors, but coverage is limited to key scenarios; add more edge-case tests to raise confidence.
 
 ## 📐 Smarter Scheduling
 
@@ -80,6 +96,7 @@ PawPal+ now includes a small set of scheduling helpers that make the demo more u
 | Filtering behavior | `Scheduler.filter_tasks()` | Filters tasks by pet name and/or completion status, which is useful for pet-specific views and status-based lists. |
 | Conflict detection logic | `Scheduler.detect_conflicts()` | Compares task times for the same day and returns warning messages when two tasks overlap instead of crashing or failing silently. |
 | Recurring task logic | `Scheduler.mark_task_complete()` and `Task.get_next_occurrence()` | When a daily or weekly task is completed, the next occurrence is cloned automatically using `timedelta` so the recurring care task stays in the schedule. |
+
 
 ## 📸 Demo Walkthrough
 
