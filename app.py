@@ -10,6 +10,8 @@ from pawpal_system import (
     ScheduleItem,
     TimeWindow,
 )
+from config import get_settings
+from agent import PawPalAgent
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -215,3 +217,122 @@ if st.button("Generate schedules"):
                 st.text(plan.explain_plan())
             else:
                 st.info(f"ℹ️ {pet.name} has no tasks to schedule yet.")
+
+st.divider()
+
+# ---------------------------------------------------------------------------
+# AI Planner (Agentic Plan -> Act -> Check)
+# ---------------------------------------------------------------------------
+st.subheader("🤖 AI Planner (Agentic)")
+st.caption(
+    "Describe your day in plain English. The agent PLANS (extracts tasks), "
+    "ACTS (schedules with the deterministic engine), and CHECKS its own work — "
+    "then you approve, edit, or reject before anything is committed."
+)
+
+_settings = get_settings()
+if not _settings.has_api_key:
+    st.warning(
+        "No GEMINI_API_KEY configured — running in **deterministic fallback mode** "
+        "(keyword parser instead of Gemini). Add a key in `.env` to enable the LLM.",
+        icon="⚠️",
+    )
+
+# Choose which pet approved tasks get committed to.
+ai_target_pet = None
+if st.session_state.pets:
+    ai_pet_name = st.selectbox(
+        "Commit approved tasks to which pet?",
+        [p.name for p in st.session_state.pets],
+        key="ai_pet_select",
+    )
+    ai_target_pet = next(p for p in st.session_state.pets if p.name == ai_pet_name)
+else:
+    st.info("Tip: add a pet above so approved tasks have somewhere to go. You can still preview a plan.")
+
+nl_text = st.text_area(
+    "Describe the care your pet needs today",
+    value="I have about 5 hours. My dog needs a 30-minute walk, two feedings, and his medication. Also some playtime.",
+    key="ai_nl_input",
+    height=100,
+)
+
+if st.button("Plan with AI"):
+    if not nl_text.strip():
+        st.warning("Please describe what your pet needs.")
+    else:
+        with st.spinner("Agent running Plan → Act → Check…"):
+            agent = PawPalAgent(settings=_settings)
+            result = agent.run(
+                nl_text,
+                pet=ai_target_pet,
+                owner=st.session_state.owner,
+                available_minutes=st.session_state.owner.available_time_minutes,
+            )
+        # Persist across reruns so the Approve/Edit gate survives button clicks.
+        st.session_state.agent_result = result
+        st.session_state.agent_rows = [
+            {
+                "title": t.title,
+                "duration_minutes": t.duration_minutes,
+                "priority": t.priority,
+                "category": t.category,
+            }
+            for t in result.proposed_tasks
+        ]
+
+# Show the trace + human Approve/Edit/Reject gate when a result exists.
+if "agent_result" in st.session_state and st.session_state.agent_result is not None:
+    result = st.session_state.agent_result
+
+    mode = "🔁 Fallback (no LLM)" if result.used_fallback else "✨ Gemini"
+    st.markdown(f"**Engine:** {mode}  |  **Iterations:** {result.iterations}")
+
+    with st.expander("🧠 Reasoning trace (Plan → Act → Check)", expanded=True):
+        for step in result.trace:
+            st.markdown(f"- `iter {step.iteration}` **{step.phase}** — {step.detail}")
+
+    if result.critique.get("ok"):
+        st.success("Self-check verdict: **ACCEPTABLE** ✅")
+    else:
+        st.error("Self-check verdict: **NEEDS REVISION** ⚠️")
+    for issue in result.critique.get("issues", []):
+        st.write(f"  • issue: {issue}")
+    for fix in result.critique.get("suggested_fixes", []):
+        st.write(f"  • suggested fix: {fix}")
+
+    if result.day_plan:
+        st.markdown("**Proposed schedule:**")
+        st.text(result.day_plan.explain_plan())
+
+    st.markdown("#### 👤 Human review — edit tasks then approve")
+    edited_rows = st.data_editor(
+        st.session_state.agent_rows,
+        num_rows="dynamic",
+        key="ai_task_editor",
+        column_config={
+            "priority": st.column_config.SelectboxColumn(options=["low", "medium", "high"]),
+        },
+    )
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("✅ Approve & commit"):
+            if not ai_target_pet:
+                st.warning("Add and select a pet first to commit tasks.")
+            else:
+                committed = 0
+                for row in edited_rows:
+                    task = Task.from_dict(row, pet=ai_target_pet)
+                    if task.is_valid():
+                        ai_target_pet.add_task(task)
+                        st.session_state.tasks.append(task)
+                        committed += 1
+                st.session_state.agent_result = None
+                st.success(f"Committed {committed} task(s) to {ai_target_pet.name}.")
+                st.rerun()
+    with col_b:
+        if st.button("❌ Reject"):
+            st.session_state.agent_result = None
+            st.info("Plan discarded. Adjust your description and try again.")
+            st.rerun()

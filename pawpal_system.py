@@ -123,6 +123,17 @@ class Task:
 		"""Check if task duration fits within remaining available time."""
 		return self.duration_minutes <= time_remaining
 
+	@classmethod
+	def from_dict(cls, data: dict, pet: "Pet" | None = None) -> "Task":
+		"""Build a Task from a validated dict (used by the AI agent layer)."""
+		return cls(
+			title=data.get("title", ""),
+			duration_minutes=int(data.get("duration_minutes", 0)),
+			priority=data.get("priority", "medium"),
+			category=data.get("category", "care"),
+			pet=pet,
+		)
+
 
 @dataclass
 class ScheduleItem:
